@@ -1,10 +1,11 @@
-import { useState, useEffect, ChangeEvent, useRef } from 'react'
+import { useState, useEffect, ChangeEvent, useRef, MouseEventHandler } from 'react'
 import Markdown from 'react-markdown'
 import remarkGfm from 'remark-gfm'
 import mermaid from 'mermaid'
 import {Prism as SyntaxHighlighter} from 'react-syntax-highlighter'
-import {dark} from 'react-syntax-highlighter/dist/esm/styles/prism'
+import {oneDark} from 'react-syntax-highlighter/dist/esm/styles/prism'
 import { Button, Flex, Input, Space } from 'antd'
+import { CopyOutlined, DownloadOutlined } from '@ant-design/icons'
 import './github-markdown.css'
 import './App.css'
 
@@ -12,31 +13,31 @@ mermaid.initialize({
   startOnLoad: false
 })
 const { TextArea } = Input
+const randId = (prefix = 'id') => prefix + Math.random().toString(36).slice(2)
 
 function App() {
   const [markdown, setMarkdown] = useState<string>('# type something')
   const textRef = useRef<HTMLTextAreaElement>(null)
 
-  const rerender = async (text: string, ele: Element | null) => {
+  const render = async (text: string, ele: Element | null) => {
     if (!ele) return
-    const step = ele.getAttribute('data-step')
-    if (step) return
-    ele.setAttribute('data-step', '1')
     try {
-      const id = 'buf' + Math.random().toString(36).slice(2)
-      const {svg} = await mermaid.mermaidAPI.render(id, text, ele)
+      const {svg} = await mermaid.mermaidAPI.render(randId('buf'), text, ele)
       ele.innerHTML = svg
     } catch (ex) {
       console.error(ex)
     }
-    ele.setAttribute('data-step', '2')
   }
+
+  const rerender = async (mermaids: NodeListOf<Element>) => {
+    for (const ele of mermaids) {
+      await render(ele.textContent ?? '', ele)
+     }
+   }
 
   useEffect(() => {
     const mermaids = document.querySelectorAll('.mermaid')
-    for (const ele of mermaids) {
-     rerender(ele.textContent ?? '', ele)
-    }
+    rerender(mermaids)
   }, [markdown])
 
   const onChange = (e: ChangeEvent<HTMLTextAreaElement>) => {
@@ -44,10 +45,66 @@ function App() {
     setMarkdown(e.target.value)
   }
 
+  const copyToClipboard: MouseEventHandler<HTMLElement>  = (evt) => {
+    const text = evt.currentTarget.getAttribute('data-value') ?? ''
+    navigator.clipboard.writeText(text)
+      .then(() => {
+        console.log('Text copied to clipboard');
+      })
+      .catch((err) => {
+        console.error('Failed to copy text to clipboard:', err);
+      })
+  }
+
+  // Function to convert SVG to PNG
+  const convertSvgToPng = (svgElement: SVGSVGElement) => {
+    const width = svgElement.width.baseVal.value;
+    const height = svgElement.height.baseVal.value;
+
+    const canvas = document.createElement('canvas');
+    canvas.width = width;
+    canvas.height = height;
+
+    const context = canvas.getContext('2d');
+    if (!context) return
+
+    // Create a new Image object and load SVG as data URL
+    const image = new Image();
+    const svgData = new XMLSerializer().serializeToString(svgElement);
+    const svgUrl = `data:image/svg+xml;charset=utf-8,${encodeURIComponent(svgData)}`;
+
+    image.onload = () => {
+      // Draw the loaded SVG image onto the canvas
+      context.clearRect(0, 0, width, height);
+      context.drawImage(image, 0, 0, width, height);
+
+      // Convert canvas to PNG data URL
+      const pngDataUrl = canvas.toDataURL('image/png');
+
+      // Invoke the callback function with the PNG data URL
+      const link = document.createElement('a');
+      link.href = pngDataUrl;
+      link.download = `talkgpteal_chart_${svgElement.id}.png`
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);;
+    };
+
+    image.src = svgUrl;
+  };
+
+  const downloadImage: MouseEventHandler<HTMLElement> = (evt) => {
+    const parent = evt.currentTarget.parentElement
+    if (!parent) return
+    const svgElement = parent.querySelector('svg'); // Replace with your SVG's ID or selector
+    if (!svgElement) return
+    convertSvgToPng(svgElement); // Provide a desired filename
+  }
+
   const insertCode = () => {
     setMarkdown(markdown + `
 \`\`\`js
-    const a = 1
+  const a = 1
 \`\`\``)
   }
 
@@ -72,14 +129,14 @@ pie title NETFLIX
     setMarkdown(markdown + `
 \`\`\`mermaid
 sequenceDiagram
-    Alice ->> Bob: Hello Bob, how are you?
-    Bob-->>John: How about you John?
-    Bob--x Alice: I am good thanks!
-    Bob-x John: I am good thanks!
-    Note right of John: Bob thinks a long<br/>long time, so long<br/>that the text does<br/>not fit on a row.
+  Alice ->> Bob: Hello Bob, how are you?
+  Bob-->>John: How about you John?
+  Bob--x Alice: I am good thanks!
+  Bob-x John: I am good thanks!
+  Note right of John: Bob thinks a long<br/>long time, so long<br/>that the text does<br/>not fit on a row.
 
-    Bob-->Alice: Checking with John...
-    Alice->John: Yes... John, how are you?
+  Bob-->Alice: Checking with John...
+  Alice->John: Yes... John, how are you?
 \`\`\``)
 
   }
@@ -88,10 +145,10 @@ sequenceDiagram
     setMarkdown(markdown + `
 \`\`\`mermaid
 graph LR
-    A[Square Rect] -- Link text --> B((Circle))
-    A --> C(Round Rect)
-    B --> D{Rhombus}
-    C --> D
+  A[Square Rect] -- Link text --> B((Circle))
+  A --> C(Round Rect)
+  B --> D{Rhombus}
+  C --> D
 \`\`\``)
   }
 
@@ -99,18 +156,18 @@ graph LR
     setMarkdown(markdown + `
 \`\`\`mermaid
 gitGraph:
-    commit "Ashish"
-    branch newbranch
-    checkout newbranch
-    commit id:"1111"
-    commit tag:"test"
-    checkout main
-    commit type: HIGHLIGHT
-    commit
-    merge newbranch
-    commit
-    branch b2
-    commit
+  commit "Ashish"
+  branch newbranch
+  checkout newbranch
+  commit id:"1111"
+  commit tag:"test"
+  checkout main
+  commit type: HIGHLIGHT
+  commit
+  merge newbranch
+  commit
+  branch b2
+  commit
 \`\`\``)
   }
 
@@ -142,17 +199,25 @@ gitGraph:
         components={{
           code({children, className, node, ...rest}) {
             const match = /language-(\w+)/.exec(className || '')
-            if (!match) return  <code {...rest} className={className}>{children}</code>
+            if (!match) return <>
+              <code {...rest} className={className}>{children}</code>
+              <Button className="btn-overlay" icon={<CopyOutlined/>} type="link" onClick={copyToClipboard} data-value={children}/>
+            </>
             if (match[1] === 'mermaid'){
-              return <div className="mermaid">{children}</div>
+              return <>
+                <div className="mermaid">{children}</div>
+                <Button className="btn-overlay" icon={<DownloadOutlined />} type="link" onClick={downloadImage}/>
+              </>
             }
-            return <SyntaxHighlighter
-              {...rest}
-              children={String(children).replace(/\n$/, '')}
-              style={dark}
-              language={match[1]}
-              PreTag="div"
-            />
+            return <>
+              <SyntaxHighlighter
+                children={String(children).replace(/\n$/, '')}
+                style={oneDark}
+                language={match[1]}
+                PreTag="div"
+              />
+              <Button className="btn-overlay" icon={<CopyOutlined />} type="link" onClick={copyToClipboard} data-value={children}/>
+            </>
           }
         }}
       />

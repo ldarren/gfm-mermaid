@@ -8,3 +8,11 @@
 .editor > .textarea {
   flex: 1 1 auto;
 }
+.markdown-body pre {
+  position: relative;
+}
+.btn-overlay{
+  position: absolute;
+  top: 22px;
+  right: 14px;
+}
