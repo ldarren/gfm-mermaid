@@ -110,9 +110,15 @@ function App() {
 
   const insertTable = () => {
     setMarkdown(markdown + `
-| foo | bar |
-| - | - |
-| baz | bim |
+| Caso                  | Status | Respuesta                                          |
+| --------------------- | ------ | -------------------------------------------------- |
+| Success               | 200    | {payload}                                          |
+| Bad Request           | 400    | { "status": 400, "message": "Bad Request" }        |
+| Invalid Credentials   | 401    | { "status": 401,"message": "Invalid redentials"}   |
+| Not Found Exception   | 404    | { "status": 404,"message": "Resource not Found"}   |
+| Method Not Allowed    | 405    | { "status": 405, "message": "Method Not Allowed" } |
+| Conflict Exception    | 409    | { "status": 409, "message": Conflict Exception" }  |
+| Internar Server Error | 500    | { "status": 500,"message": Internar Server Error"} |
 `)
   }
 
