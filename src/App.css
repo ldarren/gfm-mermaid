@@ -1,9 +1,11 @@
 .frame > .editor, .frame > .view {
   flex: 1 1 50%;
+  max-width: 50%;
   height: 100vh;
 }
 .editor > .toolbar {
   flex: 0 0 32px;
+  overflow-x: auto;
 }
 .editor > .textarea {
   flex: 1 1 auto;
